@@ -3,11 +3,19 @@ package com.star.siteview;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.telephony.CellInfo;
+import android.telephony.CellInfoGsm;
+import android.telephony.CellInfoLte;
+import android.telephony.CellLocation;
+import android.telephony.TelephonyManager;
+import android.telephony.gsm.GsmCellLocation;
+import android.widget.Toast;
 
 import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.map.BaiduMap;
 import com.baidu.mapapi.map.BitmapDescriptor;
 import com.baidu.mapapi.map.BitmapDescriptorFactory;
+import com.baidu.mapapi.map.MapPoi;
 import com.baidu.mapapi.map.MapStatus;
 import com.baidu.mapapi.map.MapStatusUpdate;
 import com.baidu.mapapi.map.MapStatusUpdateFactory;
@@ -32,6 +40,15 @@ public class MainActivity extends AppCompatActivity {
     private BaiduMap mBaiduMap;
 
     private BitmapDescriptor mBitmapDescriptor;
+
+    /** Unknown network class. {@hide} */
+    public static final int NETWORK_CLASS_UNKNOWN = 0;
+    /** Class of broadly defined "2G" networks. {@hide} */
+    public static final int NETWORK_CLASS_2_G = 1;
+    /** Class of broadly defined "3G" networks. {@hide} */
+    public static final int NETWORK_CLASS_3_G = 2;
+    /** Class of broadly defined "4G" networks. {@hide} */
+    public static final int NETWORK_CLASS_4_G = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,6 +133,61 @@ public class MainActivity extends AppCompatActivity {
 
         mBaiduMap.addOverlay(overlayOptionsG);
 
+        mBaiduMap.setOnMapClickListener(new BaiduMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                TelephonyManager telephonyManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+
+                int networkType = telephonyManager.getNetworkType();
+
+                CellLocation cellLocation = telephonyManager.getCellLocation();
+
+                List<CellInfo> cellInfos = telephonyManager.getAllCellInfo();
+
+                int lac = 0;
+                int ci = 0;
+                int dbm = 0;
+
+                switch (getNetworkClass(networkType)) {
+                    case NETWORK_CLASS_2_G:
+                        ci = ((GsmCellLocation) cellLocation).getCid(); // hex
+                        lac = ((GsmCellLocation) cellLocation).getLac();
+
+                        CellInfoGsm cellInfoGsm = (CellInfoGsm) cellInfos.get(0);
+                        dbm = cellInfoGsm.getCellSignalStrength().getDbm();
+                        break;
+
+                    case NETWORK_CLASS_4_G:
+                        ci = ((GsmCellLocation) cellLocation).getCid(); // hex
+                        System.out.println(ci);
+                        ci = Integer.valueOf(Integer.toHexString(ci).substring(3), 16);
+                        lac = ((GsmCellLocation) cellLocation).getLac();
+
+                        CellInfoLte cellInfoLte = (CellInfoLte) cellInfos.get(0);
+                        dbm = cellInfoLte.getCellSignalStrength().getDbm();
+                        break;
+
+                    default:
+                        ci = ((GsmCellLocation) cellLocation).getCid(); // hex
+                        lac = ((GsmCellLocation) cellLocation).getLac();
+
+                        cellInfoGsm = (CellInfoGsm) cellInfos.get(0);
+                        dbm = cellInfoGsm.getCellSignalStrength().getDbm();
+                        break;
+                }
+
+                Toast.makeText(getBaseContext(), "lac: " + lac + "\n" + "ci: " + ci + "\n" +
+                        "dbm: " + dbm, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public boolean onMapPoiClick(MapPoi mapPoi) {
+                return false;
+            }
+        });
+
+
+
     }
 
     private List<LatLng> calculatePoints(LatLng baiduLatLng, float rotate) {
@@ -140,6 +212,31 @@ public class MainActivity extends AppCompatActivity {
         points.add(right);
 
         return points;
+    }
+
+    private int getNetworkClass(int networkType) {
+        switch (networkType) {
+            case TelephonyManager.NETWORK_TYPE_GPRS:
+            case TelephonyManager.NETWORK_TYPE_EDGE:
+            case TelephonyManager.NETWORK_TYPE_CDMA:
+            case TelephonyManager.NETWORK_TYPE_1xRTT:
+            case TelephonyManager.NETWORK_TYPE_IDEN:
+                return NETWORK_CLASS_2_G;
+            case TelephonyManager.NETWORK_TYPE_UMTS:
+            case TelephonyManager.NETWORK_TYPE_EVDO_0:
+            case TelephonyManager.NETWORK_TYPE_EVDO_A:
+            case TelephonyManager.NETWORK_TYPE_HSDPA:
+            case TelephonyManager.NETWORK_TYPE_HSUPA:
+            case TelephonyManager.NETWORK_TYPE_HSPA:
+            case TelephonyManager.NETWORK_TYPE_EVDO_B:
+            case TelephonyManager.NETWORK_TYPE_EHRPD:
+            case TelephonyManager.NETWORK_TYPE_HSPAP:
+                return NETWORK_CLASS_3_G;
+            case TelephonyManager.NETWORK_TYPE_LTE:
+                return NETWORK_CLASS_4_G;
+            default:
+                return NETWORK_CLASS_UNKNOWN;
+        }
     }
 
 }

@@ -32,8 +32,9 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static final float ONE_HUNDRED_METER = 0.001f;
-    public static final float LNG_LAT_RATIO = 1.15625f; //111 / 96 即0.001在上海对应经度110米，纬度96米
+    public static final float ONE_HUNDRED_METER = 100;
+    public static final float LATITUDE_PER_METER = 0.001f / 110;//上海，纬度0.001为110米
+    public static final float LONGITUDE_PER_METER = 0.001f / 95; //上海，经度0.001为95米
     public static final float HALF_ANGLE = 15;
 
     private MapView mMapView;
@@ -150,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
                 switch (getNetworkClass(networkType)) {
                     case NETWORK_CLASS_2_G:
-                        ci = ((GsmCellLocation) cellLocation).getCid(); // hex
+                        ci = ((GsmCellLocation) cellLocation).getCid();
                         lac = ((GsmCellLocation) cellLocation).getLac();
 
                         CellInfoGsm cellInfoGsm = (CellInfoGsm) cellInfos.get(0);
@@ -158,8 +159,7 @@ public class MainActivity extends AppCompatActivity {
                         break;
 
                     case NETWORK_CLASS_4_G:
-                        ci = ((GsmCellLocation) cellLocation).getCid(); // hex
-                        System.out.println(ci);
+                        ci = ((GsmCellLocation) cellLocation).getCid();
                         ci = Integer.valueOf(Integer.toHexString(ci).substring(3), 16);
                         lac = ((GsmCellLocation) cellLocation).getLac();
 
@@ -168,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
                         break;
 
                     default:
-                        ci = ((GsmCellLocation) cellLocation).getCid(); // hex
+                        ci = ((GsmCellLocation) cellLocation).getCid();
                         lac = ((GsmCellLocation) cellLocation).getLac();
 
                         cellInfoGsm = (CellInfoGsm) cellInfos.get(0);
@@ -195,17 +195,23 @@ public class MainActivity extends AppCompatActivity {
 
         LatLng left = new LatLng(
                 baiduLatLng.latitude +
-                        ONE_HUNDRED_METER * Math.cos(Math.toRadians(-rotate - HALF_ANGLE)),
+                        ONE_HUNDRED_METER *
+                                Math.cos(Math.toRadians(-rotate - HALF_ANGLE)) *
+                                LATITUDE_PER_METER,
                 baiduLatLng.longitude +
-                        ONE_HUNDRED_METER * Math.sin(Math.toRadians(-rotate - HALF_ANGLE)) *
-                                LNG_LAT_RATIO);
+                        ONE_HUNDRED_METER *
+                                Math.sin(Math.toRadians(-rotate - HALF_ANGLE)) *
+                                LONGITUDE_PER_METER);
 
         LatLng right = new LatLng(
                 baiduLatLng.latitude +
-                        ONE_HUNDRED_METER * Math.sin(Math.toRadians(90 - (-rotate) - HALF_ANGLE)),
+                        ONE_HUNDRED_METER *
+                                Math.sin(Math.toRadians(90 - (-rotate) - HALF_ANGLE)) *
+                                LATITUDE_PER_METER,
                 baiduLatLng.longitude +
-                        ONE_HUNDRED_METER * Math.cos(Math.toRadians(90 - (-rotate) - HALF_ANGLE)) *
-                                LNG_LAT_RATIO);
+                        ONE_HUNDRED_METER *
+                                Math.cos(Math.toRadians(90 - (-rotate) - HALF_ANGLE)) *
+                                LONGITUDE_PER_METER);
 
         points.add(baiduLatLng);
         points.add(left);
